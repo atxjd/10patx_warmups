@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>10P ATX Warmups</title>
+
+    <script language="JavaScript">
+
+        var oneDay = 24 * 60 * 60 * 1000;
+
+        var warmupWeekDayMap = [
+                ['A','B','C','D'],
+                ['E','F','G','H'],
+                ['B','A','D','C'],
+                ['F','E','H','G'],
+                ['D','C','B','A'],
+                ['H','G','F','E'],
+                ['C','D','A','B'],
+                ['G','H','E','F']
+        ];
+
+        var warmupMap = [
+                ['Granbys', 'K87AUrlmSBE'],
+                ['Hail Marys', 'INFTLutYfg'],
+                ['Pressure Passes', 'srghUW0nqNc'],
+                ['Standing Psases', 'Q2b6SMRYPP4'],
+                ['Quarter Guard', 'LGE2L12N-FA'],
+                ['Butterflies', 'PDhMLvfzK9w'],
+                ['Top Half Passes', 'oUibzLZz0I0'],
+                ['Open Guards', 'OYnWxY-PBBc']
+        ];
+
+
+        function today() {
+            var today = new Date();
+            var dd = today.getDate();
+            var mm = today.getMonth()+1; //January is 0!
+            var yyyy = today.getFullYear();
+
+            if (dd < 10) {
+                dd ='0' + dd;
+            }
+
+            if (mm < 10) {
+                mm = '0' + mm;
+            }
+
+            today = mm + '/' + dd + '/' + yyyy;
+            return new Date(today);
+        }
+
+        function getWarmupLetterFromDate(warmupDate) {
+
+            
+            var seedDate = new Date('2016-04-11'); // Week 1, Day A (which is a monday)
+            var diffDays = Math.round(Math.abs(warmupDate.getTime() - seedDate.getTime()) / oneDay);
+            var dayIndex = (diffDays % 7);
+            var weekIndex = Math.floor((diffDays / 7) % 8);
+
+            var warmupLetter = "Z";
+
+            if (weekIndex < 8 && dayIndex < 4) {
+                warmupLetter = warmupWeekDayMap[weekIndex][dayIndex];
+            }
+
+            return warmupLetter;
+
+        }
+
+        function getNextWarmUpInfoFromDate(seedDate, inc) {
+            var letter = "Z";
+            var letterDate = new Date(seedDate.getTime());
+
+            if (inc == 0) inc = 1; // stack overflow prevention
+
+            while (letter == "Z") {
+                letter = getWarmupLetterFromDate(letterDate);
+
+                if (letter == "Z") letterDate.setDate(letterDate.getDate() + 1 * inc);
+            }
+
+            var dayDiff =  Math.round((letterDate.getTime() - today().getTime()) / oneDay);
+            var dayLabel = "Today";
+
+            if (dayDiff == 1) {
+                dayLabel = "Tomorrow";
+            } else if (dayDiff == -1) {
+                dayLabel = "Yesterday";
+            } else if (dayDiff > 1) {
+                dayLabel = dayDiff + " Days";
+            } else if (dayDiff < -1) {
+                dayLabel = dayDiff + "Days ago";
+            }
+
+            var warmupMapIndex = letter.charCodeAt(0) - 65; // assuming caps, 0 based index on UTF-16
+
+            var warmupInfo = {
+                letter:         letter,
+                warmupDate:     letterDate,
+                headingLabel: "Warmup " + letter + ": " + warmupMap[warmupMapIndex][0] + " - " + dayLabel + " (" + letterDate.toString().substring(0, 10) + ")",
+                youtubeUrl:     "https://www.youtube.com/embed/" + warmupMap[warmupMapIndex][1]
+            };
+
+            return warmupInfo;
+        }
+
+        function init() {
+            var seedDate = today();
+        
+            var nextWarmupInfo = getNextWarmUpInfoFromDate(seedDate, 1);
+
+            var upcommingDate = new Date(nextWarmupInfo.warmupDate.getTime());
+            upcommingDate.setDate(upcommingDate.getDate() + 1);
+
+            var upcommingWarmupInfo = getNextWarmUpInfoFromDate(upcommingDate, 1);
+
+            var previousDate = new Date(seedDate.getTime());
+            previousDate.setDate(previousDate.getDate() - 1);
+
+            var previousWarmUpInfo = getNextWarmUpInfoFromDate(previousDate, -1);
+
+            document.getElementById('nextContent').innerHTML = "Current: " + nextWarmupInfo.headingLabel;
+            document.getElementById('nextVideo').src = nextWarmupInfo.youtubeUrl;
+            
+            document.getElementById('upcommingContent').innerHTML = "Up Next: " + upcommingWarmupInfo.headingLabel;
+            document.getElementById('upcommingVideo').src = upcommingWarmupInfo.youtubeUrl;
+
+            document.getElementById('previousContent').innerHTML = "Previous: " + previousWarmUpInfo.headingLabel;
+            document.getElementById('previousVideo').src = previousWarmUpInfo.youtubeUrl;
+
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("videos").style.display = "block";
+        }
+
+        function runTest() {
+            for (i = 0; i < 50; i++) {
+                var theDate = today();
+                theDate.setDate(theDate.getDate() + i * -1);
+                
+                document.write("<br>Date: " + theDate + "<br>");
+                document.write(" " + getNextWarmUpInfoFromDate(theDate, -1).letter);
+            }
+        }
+
+    </script>
+
+
+
+
+</head>
+
+<body onload="init()">
+
+<div id="loading">Loading ...</div>
+
+<div id="videos" style="display:block">
+
+    <div id="nextContent">Loading</div>
+    <iframe id="nextVideo" width="560" height="315" frameborder="0" allowfullscreen></iframe>
+    <br>
+
+    <div id="upcommingContent"></div>
+    <iframe id="upcommingVideo" width="560" height="315" frameborder="0" allowfullscreen></iframe>
+    <br>
+
+    <div id="previousContent"></div>
+    <iframe id="previousVideo" width="560" height="315" frameborder="0" allowfullscreen></iframe>
+    <br>
+
+</div>
+
+
+
+
+</body>
+</html>
