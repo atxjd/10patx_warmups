@@ -30,12 +30,24 @@
                 ['Open Guards', 'OYnWxY-PBBc']
         ];
 
+        function getParameterByName(name, url) {
+            if (!url) url = window.location.href;
+            name = name.replace(/[\[\]]/g, "\\$&");
+            var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+                    results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, " "));
+        }
 
         function today() {
-            var today = new Date();
-            var dd = today.getDate();
-            var mm = today.getMonth()+1; //January is 0!
-            var yyyy = today.getFullYear();
+            return new Date(formatDate(new Date()));
+        }
+
+        function formatDate(date) {
+            var dd = date.getDate();
+            var mm = date.getMonth()+1; //January is 0!
+            var yyyy = date.getFullYear();
 
             if (dd < 10) {
                 dd ='0' + dd;
@@ -45,12 +57,10 @@
                 mm = '0' + mm;
             }
 
-            today = mm + '/' + dd + '/' + yyyy;
-            return new Date(today);
+            return mm + '/' + dd + '/' + yyyy;
         }
 
         function getWarmupLetterFromDate(warmupDate) {
-
             
             var seedDate = new Date('2016-04-11'); // Week 1, Day A (which is a monday)
             var diffDays = Math.round(Math.abs(warmupDate.getTime() - seedDate.getTime()) / oneDay);
@@ -64,7 +74,6 @@
             }
 
             return warmupLetter;
-
         }
 
         function getNextWarmUpInfoFromDate(seedDate, inc) {
@@ -75,7 +84,6 @@
 
             while (letter == "Z") {
                 letter = getWarmupLetterFromDate(letterDate);
-
                 if (letter == "Z") letterDate.setDate(letterDate.getDate() + 1 * inc);
             }
 
@@ -89,23 +97,42 @@
             } else if (dayDiff > 1) {
                 dayLabel = dayDiff + " Days";
             } else if (dayDiff < -1) {
-                dayLabel = dayDiff + "Days ago";
+                dayLabel = Math.abs(dayDiff) + " Days ago";
             }
 
             var warmupMapIndex = letter.charCodeAt(0) - 65; // assuming caps, 0 based index on UTF-16
 
-            var warmupInfo = {
+            return {
                 letter:         letter,
                 warmupDate:     letterDate,
                 headingLabel: "Warmup " + letter + ": " + warmupMap[warmupMapIndex][0] + " - " + dayLabel + " (" + letterDate.toString().substring(0, 10) + ")",
                 youtubeUrl:     "https://www.youtube.com/embed/" + warmupMap[warmupMapIndex][1]
             };
+        }
 
-            return warmupInfo;
+        function updatePrevNextLinks(linkId, seedDate, inc) {
+            var url = document.location.href;
+
+            var linkDate = new Date(seedDate.getTime());
+            linkDate.setDate(linkDate.getDate() + 1 * inc);
+
+            if (url.indexOf('d=') >= 0) {
+                url = url.replace(/(d=)[^\&]+/, '$1' + formatDate(linkDate));
+            } else if (url.indexOf('?') > 0) {
+                url += '&d=' + formatDate(linkDate);
+            } else {
+                url += "?d=" + formatDate(linkDate);
+            }
+
+            document.getElementById(linkId).href = url;
         }
 
         function init() {
-            var seedDate = today();
+            var seedDate = getSeedDate();
+
+            document.getElementById('seedDateContent').innerHTML = seedDate.toString().substring(0, 10);
+            updatePrevNextLinks('prevLink', seedDate, -1);
+            updatePrevNextLinks('nextLink', seedDate, 1);
         
             var nextWarmupInfo = getNextWarmUpInfoFromDate(seedDate, 1);
 
@@ -127,9 +154,16 @@
 
             document.getElementById('previousContent').innerHTML = "Previous: " + previousWarmUpInfo.headingLabel;
             document.getElementById('previousVideo').src = previousWarmUpInfo.youtubeUrl;
+        }
 
-            document.getElementById("loading").style.display = "none";
-            document.getElementById("videos").style.display = "block";
+        function getSeedDate() {
+            var q = getParameterByName('d');
+
+            if (q != null) {
+                return new Date(q);
+            } else {
+                return today();
+            }
         }
 
         function runTest() {
@@ -144,33 +178,61 @@
 
     </script>
 
+    <style>
+        .content {
+            display: block;
+            width: 100%;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .videowrapper {
+            float: none;
+            clear: both;
+            width: 90%;
+            position: relative;
+            padding-bottom: 56.25%;
+            padding-top: 25px;
+            margin-bottom: 25px;
+            margin-top: 5px;
+            height: 0;
+        }
+        .videowrapper iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
 
+    </style>
 
 
 </head>
 
 <body onload="init()">
 
-<div id="loading">Loading ...</div>
+<div id="content" class="content">
 
-<div id="videos" style="display:block">
+    <div class="header">
+        <a id="prevLink">&lt;&lt;</a>&nbsp;&nbsp;Warmups for <span id="seedDateContent"></span>&nbsp;&nbsp;<a id="nextLink">&gt;&gt;</a>
+    </div>
 
-    <div id="nextContent">Loading</div>
-    <iframe id="nextVideo" width="560" height="315" frameborder="0" allowfullscreen></iframe>
-    <br>
-
-    <div id="upcommingContent"></div>
-    <iframe id="upcommingVideo" width="560" height="315" frameborder="0" allowfullscreen></iframe>
-    <br>
-
-    <div id="previousContent"></div>
-    <iframe id="previousVideo" width="560" height="315" frameborder="0" allowfullscreen></iframe>
-    <br>
+    <span id="nextContent"></span>
+    <div class="videowrapper">
+        <iframe id="nextVideo" width="560" height="315" frameborder="0" allowfullscreen></iframe>
+    </div>
+    <span id="upcommingContent"></span>
+    <div class="videowrapper">
+        <iframe id="upcommingVideo" width="560" height="315" frameborder="0" allowfullscreen></iframe>
+    </div>
+    <span id="previousContent"></span>
+    <div class="videowrapper">
+        <iframe id="previousVideo" width="560" height="315" frameborder="0" allowfullscreen></iframe>
+    </div>
 
 </div>
-
-
-
 
 </body>
 </html>
